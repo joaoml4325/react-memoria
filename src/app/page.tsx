@@ -1,65 +1,113 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useEffect, useState } from "react";
+
+import { Info } from "@/components/info-pasta/info";
+import { GridArea } from "@/components/grid-pasta/grid-area";
+
+import { GridItemType } from "@/types/gridItemType";
+import { items } from "@/data/items";
+
+const Page = () => {
+  const [playing, setPlaying] = useState<boolean>(false);
+  const [timeElapsed, setTimeElapsed] = useState<number>(0);
+  const [moveCount, setMoveCount] = useState<number>(0);
+  const [shownCount, setShownCount] = useState<number>(0);
+  const [gridItems, setGridItems] = useState<GridItemType[]>([]);
+
+  useEffect(() => resetAndCreateGrid(), []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if(playing) setTimeElapsed(timeElapsed + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [playing, timeElapsed]);
+
+  // Verifiacar se os abertos são iguais
+  useEffect(() => {
+    if(shownCount === 2) {
+      let opened = gridItems.filter(item => item.shown);
+      if(opened.length === 2) {
+
+        // v1 - Se eles são iguais tornalos permanentes
+        if(opened[0].item === opened[1].item) {
+          let tempGrid = [...gridItems];
+          for(let i in tempGrid) {
+            if(tempGrid[i].shown) {
+              tempGrid[i].permanentShown = true;
+              tempGrid[i].shown = false;
+            }
+            setGridItems(tempGrid);
+            setShownCount(0);
+          }
+        } else {
+          // v2 - Se eles são diferentes fechalos
+          setTimeout(() => {
+            let tempGrid = [...gridItems];
+            for(let i in tempGrid) {
+              tempGrid[i].shown = false;
+            }
+            setGridItems(tempGrid);
+            setShownCount(0);
+          }, 1000);
+        }
+
+        setMoveCount(moveCount => moveCount + 1);
+      }
+    }
+  }, [shownCount, gridItems]);
+
+  // Verificar se o jogo acabou
+  useEffect(() => {
+    if(moveCount > 0 && gridItems.every(items => items.permanentShown)) {
+      setPlaying(false);
+    }
+  }, [moveCount, gridItems]);
+
+  const resetAndCreateGrid = () => {
+    // passo 1 - Resetar o jogo
+    setTimeElapsed(0);
+    setMoveCount(0);
+    setShownCount(0);
+
+    // passo 2 - Criar o grid
+
+    // 2.1 - Criar um grid vazio
+    let tempGrid: GridItemType[] = [];
+    for (let i = 0; i < (items.length * 2); i++) {
+      tempGrid.push({
+        item: null,
+        shown: false,
+        permanentShown: false
+      });
+    }
+
+    // 2.2 - Preencher o grid
+    for (let w = 0; w < 2; w++) {
+      for (let i = 0; i < items.length; i++) {
+        let pos = -1;
+        while (pos < 0 || tempGrid[pos].item !== null) {
+          pos = Math.floor(Math.random() * (items.length * 2));
+        }
+        tempGrid[pos].item = i;
+      }
+    }
+
+    // 2.3 - Jogar no state
+    setGridItems(tempGrid);
+
+    // passo 3 - Começar o jogo
+    setPlaying(true);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="w-full max-w-187.5 mx-auto flex flex-col py-12.5 lg:flex-row">
+      <Info func={resetAndCreateGrid} time={timeElapsed} moveValue={moveCount} />
+
+      <GridArea gridItems={gridItems} play={playing} setCount={setShownCount} count={shownCount} setGridItems={setGridItems} />
     </div>
   );
 }
+
+export default Page; 
